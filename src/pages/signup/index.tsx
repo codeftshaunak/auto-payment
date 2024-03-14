@@ -1,5 +1,3 @@
-// components/SignupForm.tsx
-
 import React, { useState } from 'react';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
@@ -15,15 +13,52 @@ const SignupForm: React.FC = () => {
             return;
         }
 
-        const { token, error } = await stripe.createToken(elements.getElement(CardElement));
-        console.log(token);
+        try {
+            // Call your backend to create a PaymentIntent
+            const response = await fetch('http://localhost:3001/api/create-payment-intent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    amount: 2000, // Amount in cents
+                    currency: 'usd',
+                }),
+            });
 
-        if (error) {
-            setError(error.message);
-        } else {
-            // Send token.id to your backend for storage
-            console.log(token);
-            // Proceed with user registration process
+
+            if (!response.ok) {
+                throw new Error('Failed to create payment intent');
+            }
+
+            const responseData = await response.json();
+
+            console.log(responseData);
+
+            const { clientSecret } = responseData;
+
+            // Confirm PaymentIntent
+            const result = await stripe.confirmCardPayment(clientSecret, {
+                payment_method: {
+                    card: elements.getElement(CardElement),
+                    billing_details: {
+                        // You can include additional billing details here
+                    },
+                },
+            });
+
+            if (result.error) {
+                setError(result.error.message);
+                return;
+            }
+
+            // Payment successful, proceed with user registration process
+            console.log('Payment successful:', result.paymentIntent);
+
+            // Proceed with user registration process...
+        } catch (error) {
+            console.error('Error creating payment intent:', error);
+            setError('Failed to create payment intent');
         }
     };
 
