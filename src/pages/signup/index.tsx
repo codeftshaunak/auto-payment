@@ -16,7 +16,7 @@ const SignupForm: React.FC = () => {
         }
 
         const { token, error } = await stripe.createToken(elements.getElement(CardElement));
-        console.log(error);
+        console.log(token);
 
         if (error) {
             setError(error.message);
